@@ -1,0 +1,566 @@
+## ANAEROBIC MICROBIAL COMMUNITY ANALYSIS
+## MICHIGAN STATE UNIVERSITY
+## ADREC
+##Version 1.0
+## Using as inputs 16S OTU tables and Perfoming reactors data
+## Made by Juan Pablo Rojas, 2016
+
+cat("\014") #Erase console
+
+# LOADING LIBRARY AND TABLES ----------------------------------------------
+
+
+library(vegan)
+library(phyloseq)
+library (MASS)
+library(ggplot2) 
+library(grid)
+library(gridExtra)
+library(readr)
+
+##Choose the OTU.Table should be a .txt
+con <- file.choose(new = FALSE)
+##Now choose the Taxanomy table should be .txt to
+con1 <-file.choose(new = FALSE)
+##Now choose the Metadata table should be .txt,
+con2 <-file.choose(new = FALSE)
+##Now choose the Gas Production table should be .txt,
+con3 <-file.choose(new = FALSE)
+
+OTU_Table <- read.table(con, header = T, row.names = 1)
+
+OTU_Table_taxonomy <- read.delim(con1, header = T, row.names = 1)
+
+metadata <- read.table(con2, header = T, row.names = 1)
+
+#Acumulated_gas <- read.table(con3, header = T, row.names = 1)
+
+Acumulated_gas <- read_delim("C:/Users/rojasju2/Dropbox/Trabajo/Ingenio/DNA/Anaerobic Digestion Coffee Waste/Acumulated_gas.txt", 
+                             +     "\t", escape_double = FALSE, trim_ws = TRUE)
+
+# ANOVA BETWEEN OPERATIONAL PARAMETRS ------------------------------------
+##Normally test of the data
+shapiro.test(log(metadata[,2]))
+shapiro.test(log(metadata[,3]))
+shapiro.test(log(metadata[,4]))
+shapiro.test(log(metadata[,5]))
+shapiro.test(log(metadata[,6]))
+
+metadata$Mix <- factor(metadata$Mix) ##Factor Statement
+fit <- aov(Productivity~Mix, data = metadata) #ONE WAY ANOVA for Productivity
+tf1 <- plot(TukeyHSD(fit))  #Plot results
+fit2 <- aov(CH4~Mix, data = metadata)#ONE WAY ANOVA for CH4
+tf2 <- plot(TukeyHSD(fit2))  #Plot results
+fit3 <- aov(VS_Reduction~Mix, data = metadata)#ONE WAY ANOVA for Volatile Solids Reduction
+tf3 <- plot(TukeyHSD(fit3))  #Plot results
+fit4 <- aov(Cellulose_Reduction~Mix, data = metadata)#ONE WAY ANOVA for Cellulos Reduction
+tf4 <- plot(TukeyHSD(fit4))  #Plot results
+fit5 <- aov(Xylan_Reduction~Mix, data = metadata)#ONE WAY ANOVA for Xylan Reduction
+tf5 <- plot(TukeyHSD(fit5))  #Plot results
+
+# PLOT BAR OPERATION PARAMETERS -------------------------------------------
+
+
+#ACCUMULATED GAS PRODUCTION
+
+gasprod<- ggplot(Acumulated_gas, aes(Day, Gas, color=Mix)) + geom_point(aes(shape=Mix, color=Mix)) + ylab("mL of Biogas") + 
+  geom_line(data=Acumulated_gas[Acumulated_gas$Mix!="Gas", ])+geom_smooth()+xlim(0,100)+
+  labs(title = "Acumulated Gas Production")+
+  theme(plot.title = element_text(size=8), axis.title.y = element_text(size = 8),axis.title.x = element_text(size = 8),
+        legend.position="bottom",legend.text=element_text(size = 8),legend.title=element_text(size = 8))+
+  scale_color_manual("Mix", 
+                     values = c("M1" = "#3366FF", "M2" = "#7093ff", 
+                                "M3" = "#c1d1ff"))+xlab("Days")
+ 
+pH<- ggplot(Acumulated_gas, aes(Day, pH, color=Mix)) + geom_point(aes(shape=Mix, color=Mix)) + ylab("pH") + 
+  geom_line(data=Acumulated_gas[Acumulated_gas$Mix!="pH", ])+geom_smooth()+xlim(0,100)+
+  labs(title = "pH around the experiment")+
+  theme(plot.title = element_text(size=8), axis.title.y = element_text(size = 8),axis.title.x = element_text(size = 8),
+        legend.position="bottom",legend.text=element_text(size = 8),legend.title=element_text(size = 8)) 
+
+#BOX PlOTING
+   
+##CH4 boxplot
+box_3 <- ggplot(metadata, aes(x=Mix, y=CH4)) + 
+  geom_boxplot(fill = "#7093ff") + ylab("%") +ylim(50, 80)+
+  labs(title = expression(CH[4]~composition)) +
+  theme(plot.title = element_text(size=8),
+        axis.title.x = element_blank(),axis.title.y = element_text(size = 8))
+
+
+##Productivity boxplot
+box_1 <- ggplot(metadata, aes(x=Mix, y=Productivity)) + 
+  geom_boxplot(fill = "#2347b2")+  ylab(expression(m^{3}~CH[4]~kg~VS^{-1})) + 
+  ylim(.25, .7)+
+  labs(title = expression(CH[4]~Productivity)) +
+  theme(plot.title = element_text(size=8),
+        axis.title.x = element_blank(), axis.title.y = element_text(size = 8))
+
+##VS boxplot
+box_2 <- ggplot(metadata, aes(x=Mix, y=VS_Reduction)) + 
+  geom_boxplot(fill = "#3366FF") + ylab("%") + 
+  ylim(50, 80) + labs(title = "VS Reduction") + 
+  theme(plot.title = element_text(size=8),
+        axis.title.x = element_blank(),axis.title.y = element_text(size = 8))
+ 
+##Cellulose boxplot
+box_4 <- ggplot(metadata, aes(x=Mix, y=Cellulose_Reduction)) +
+  geom_boxplot(fill = "#c1d1ff")+ ylab("%") +
+  labs(title = "Cellulose Reduction") + 
+  ylim(30, 70)+ theme(plot.title = element_text(size=8),
+                      axis.title.x = element_blank(),
+                      axis.title.y = element_text(size = 8))
+
+##Xylan boxplot
+box_5 <- ggplot(metadata, aes(x=Mix, y=Xylan_Reduction)) +
+  geom_boxplot(fill = "#eaefff")+ ylab("%") + 
+  labs(title = "Xylan Reduction") + 
+  theme(plot.title = element_text(size=8),axis.title.x = element_blank(),
+        axis.title.y = element_text(size = 8))
+
+#Save the plot and addition to all plots in one page
+ga <- grid.arrange(gasprod, box_1 , box_2, box_3 , box_4 ,box_5, ncol=3)
+ggsave(ga, filename = "OP.png", width = NA, dpi = 150)
+
+
+# ALPHA DIVERSITY ---------------------------------------------------------
+
+## Now we create the data.frame used for OTU Table, let's watch it!
+View(OTU_Table)
+## Now we create a matrix object with the data frame
+
+t.OTU.table <- t(OTU_Table)  # Conversion a matriz y transposición de tabla
+class(t.OTU.table) # Se let's check the class of the table
+# Let's make some Alpha diversity analysis indexes
+#First Shannon
+H <- diversity(t.OTU.table, index = "shannon", MARGIN = 1, base = exp(1))
+#Then Simpson
+D <- diversity(t.OTU.table, "simpson", MARGIN = 1, base = exp(1)) 
+#Third inverse Simpson
+iD <- diversity(t.OTU.table, "inv")
+# The last is Pielou's evenness
+J<-H/log(specnumber(t.OTU.table)) #Pielou's evenness
+##Let's saw all the indexe's
+(IN <- cbind(H,D,iD,J))
+
+##attach(Beta_OTU)
+#H.one <- oneway.test(H~Mix)
+#D.one <- oneway.test(D~Mix)
+#iD.one <- oneway.test(iD~Mix)
+#J.one <- oneway.test(J~Mix)
+
+##Let's plot Shannon's
+plot(H) # se imprime el índice
+
+#Rarefication
+col <- c("black", "darkred", "forestgreen", "orange", "blue", "yellow", "hotpink")
+lty <- c("solid", "dashed", "longdash", "dotdash")
+pars <- expand.grid(col = col, lty = lty, stringsAsFactors = FALSE)
+head(pars)
+ra <- rarecurve(t.OTU.table, step = 20, col =col,lty = lty, cex = 0.6) # curvas de rarefracción
+rad <- rad.lognormal(t.OTU.table) # Rank of Abundance
+rad1 <- plot(rad, xlab = "Rank", ylab = "Abundance") # Plotting the rank
+
+# BETA DIVERSITY ---------------------------------------------------------
+
+
+beta <- vegdist(t.OTU.table, binary = TRUE)
+pcoa.obj <- capscale(t.OTU.table ~ 1, distance = "bray") 
+plot(pcoa.obj) #plot the PcoA plot
+text(scores(pcoa.obj)$sites[,1], scores(pcoa.obj)$sites[,2]) # change of the labes
+labels=row.names(t.OTU.table)
+
+# VEGAN TOOLS -------------------------------------------------------------
+
+#Rank Indexes study
+rankindex(scale(t.OTU.table), t.OTU.table, c("euc", "man", "bray", "jac", "kul"))
+
+#Made with isoMDS
+iN1 <- vegdist(t.OTU.table, method = "bray", binary = TRUE, upper = FALSE, na.rm = FALSE) 
+#Bray-Curtis index from Goux et al. 2015, the standarization presence/absecence
+#Will be important to proof these results with another dissimilarities indexes
+vare.mds0 <- isoMDS(iN1) #isoMDS performed the Non-metric multidimensional scaling from MASS package
+stressplot(vare.mds0,iN1)
+ordiplot(vare.mds0, type = 't')
+
+
+#Made with metaMDS using monoMDS
+metaNMDS <- metaMDS(t.OTU.table, distance = "bray", 
+                    k = 2, trymax = 20, engine = c("monoMDS"), 
+                    wascores = TRUE, expand = TRUE, trace = 1, plot = FALSE) #Run the NMDS
+stressplot(metaNMDS)
+ordiplot(metaNMDS, type = "n")
+orditorp(metaNMDS, display = "species", choices = c(1,2), air = 1)
+
+#SECOND trial with metaMDS
+vare.mds <- metaMDS(t.OTU.table, trace = FALSE)
+vare.mds
+plot(vare.mds, type = "t")
+stressplot(vare.mds)
+
+# PROCRUSTES ANALYSIS -----------------------------------------------------
+
+tmp <- wisconsin(sqrt(t.OTU.table))
+dis <- vegdist(tmp)
+vare.mds0 <- isoMDS(dis, trace = 0)
+pro <- procrustes(vare.mds, vare.mds0) #Check the variances of the isoMDS and MetaMDS
+pro
+plot(pro)
+plot(pro, kind = 2)
+
+#OJO LUCE MEJOR metaMDS
+
+# PCOA (PRINCIPAL COMPONENTS ANALYSIS)  -----------------------------------
+
+vare.pca <- rda(t.OTU.table) #Made the PCoA Analysis
+vare.pca #Results of the Analysis
+plot(vare.pca) #Plot the PCoA
+sum(apply(t.OTU.table,2, var)) #We can see the variance
+biplot(vare.pca, scaling = 0)
+#CHECK the percentege of the variance of in the 1st PC
+
+#SCALE PCOA
+vare.pca2 <- rda(t.OTU.table, scale = TRUE)
+vare.pca2
+plot(vare.pca2, scalling = 1) #Now is possible to see species
+#CHECK the percentege of the variance of in the 1st PC
+
+# CORRESPONDANCE ANALYSIS (CA) -------------------------------------------
+
+vare.ca <- cca(t.OTU.table)
+chisq.test(t.OTU.table/sum(t.OTU.table)) #Chi-squared distance
+plot(vare.ca, scaling = 2)
+
+# DETRENDED CORRESPONDANCE ANALYSIS ---------------------------------------
+
+vare.dca <- decorana(t.OTU.table)
+vare.dca
+plot(vare.dca, display = "sites")
+plot(vare.mds)
+with(sample_data,ordiellipse(vare.mds,Mix,col="blue",kind = "se",conf = 0.95))
+
+# ENVIROMENTAL FITTING (HEATMAPS & ABUNDANCE PLOTS)---------------------------------------------------
+
+ef <- envfit(vare.mds,env = metadata[2:7], permutations = 999, na.rm = TRUE)
+plot(vare.mds, display = "sites")
+pl <- plot(ef, p.max =0.5)
+with(metadata,ordiellipse(vare.mds,Mix,col="black",kind = "se",conf = 0.95, label = TRUE))
+ef1<- envfit(vare.mds,env = metadata[8:10], permutations = 999, arrow.mul=TRUE)
+plot(ef1, col= "orange", p.max=0.5)
+ef2<- envfit(vare.mds,env = metadata[11:13], permutations = 999, arrow.mul=TRUE)
+plot(ef2, col= "red", p.max=0.8)
+
+#Phyloseq
+Full_OTU <- cbind.data.frame(OTU_Table, OTU_Table_taxonomy)
+View(OTU_Table_taxonomy) #Taxonomy table
+OTU <- otu_table(OTU_Table,taxa_are_rows = TRUE) # OTU Table production for phyloseq
+TAX <- tax_table(as.matrix(OTU_Table_taxonomy)) ## Taxanomy production for phyloseq
+SAM <-sample_data(metadata)
+physeq <- phyloseq(OTU, TAX, SAM) ##physeq document production
+physeq1 <-tax_glom(physeq, taxrank=rank_names(physeq)[4], NArm=TRUE, bad_empty=c(NA, "", " ", "\t"))
+#tax_table(physeq1)
+p = plot_bar(physeq1, fill = "Phylum")
+p
+p + geom_bar(aes(color=Phylum, fill=Phylum), stat = "identity",position = "stack")
+
+#adonis
+betad <-betadiver(t.OTU.table, 'z')
+beta_Bacter <- adonis(betad~Bacteroidetes, metadata, perm=200)
+adonis(betad~Methanothrix, metadata, perm=200)
+adonis(betad~Methanosarcina, metadata, perm=200)
+adonis(betad~Methanobacterium, metadata, perm=200)
+adonis(betad~Bacteroidetes, metadata, perm=200)
+adonis(betad~Proteobacteria, metadata, perm=200)
+adonis(betad~Mix, metadata, perm=200)
+adonis(betad~Productivity, metadata, perm=200)
+adonis(betad~CH4, metadata, perm=200)
+#Gap
+
+#Betadisper
+mod <- with(metadata, betadisper(betad, Mix))
+boxplot(mod)                                
+TukeyHSD(mod)
+permutest(mod)
+
+#Richness
+r=plot_richness(physeq, x = "samples", measures = c("Shannon", "Simpson", "InvSimpson","Fisher"), color = "Mix") + geom_boxplot()
+r+geom_point(size = 5, alpha = 0.7)+xlab("")
+
+#Abundance Plotbar Families
+physeq11 <-tax_glom(physeq, taxrank=rank_names(physeq)[5], NArm=TRUE, bad_empty=c(NA, "", " ", "\t"))
+a11 = plot_bar(physeq11, fill = "Family") + 
+  geom_bar(aes(color=Family, fill=Family), stat = "identity",position = "stack") + 
+  ylab("Microbial Abundance") +
+  theme(legend.position="bottom", axis.text.x = element_text(size = 12),
+        axis.title.x = element_blank(), axis.title.y = element_text(size = 12),
+        axis.text.y = element_text(size = 12),
+        legend.text = element_text(size = 12))
+a11
+
+#Abundance Plotbar Domain
+
+physeq1 <-tax_glom(physeq, taxrank=rank_names(physeq)[1], NArm=TRUE, bad_empty=c(NA, "", " ", "\t"))
+a = plot_bar(physeq1, fill = "Domain") + 
+  geom_bar(aes(color=Domain, fill=Domain), stat = "identity",position = "stack") + 
+  ylab("Microbial Abundance") + labs(title= "a.") +
+  theme(legend.position="right", axis.text.x = element_text(size = 15),
+       axis.title.x = element_blank(), axis.title.y = element_text(size = 15),
+       axis.text.y = element_text(size = 15),
+       legend.text = element_text(size = 11),legend.title= element_text(size = 15),plot.title= element_text(size = 15))
+a 
+
+#Abundace Plotbar Bacteria
+physeq8 <-subset_taxa(physeq, Domain== "Bacteria")
+physeq8_1 <-tax_glom(physeq8, taxrank=rank_names(physeq8)[2], NArm=TRUE, bad_empty=c(NA, "", " ", "\t"))
+b = plot_bar(physeq8_1, fill = "Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat = "identity",position = "stack") + 
+  ylab("Bacteria Abundace") + labs(title = "b.") + 
+  theme(legend.position="right", axis.title.x = element_blank(), axis.text.x = element_text(size = 15),
+        axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 15),
+          legend.text = element_text(size = 11),legend.title= element_text(size = 15),plot.title= element_text(size = 15))
+b
+
+#Abundace Plotbar Archea
+physeq5 <-subset_taxa(physeq, Domain== "Archaea")
+physeq5_1 <-tax_glom(physeq5, taxrank=rank_names(physeq5)[6], NArm=TRUE, bad_empty=c(NA, "", " ", "\t"))
+d = plot_bar(physeq5_1, fill = "Genus")+ geom_bar(aes(color=Genus, fill=Genus), stat = "identity",position = "stack") +
+  ylab("Archaea Abundace") + xlab("Samples") + labs(title = "c.") +
+  theme(legend.position="right", axis.text.x = element_text(size = 15),
+        axis.title.x = element_text(15), axis.title.y = element_text(size = 15),
+        axis.text.y = element_text(size = 15),
+        legend.text = element_text(size = 11),legend.title= element_text(size = 15),plot.title= element_text(size = 15),
+        legend.direction="vertical")
+d
+
+
+#Bacterium Genus
+x = plot_bar(physeq8, fill = "Genus")+ geom_bar(aes(color=Genus, fill=Genus), stat = "identity",position = "stack") +
+  ylab("Bacterial Abundace") + xlab("Samples") + labs(title = "c.") +
+  theme(legend.position="right", axis.text.x = element_text(size = 15),
+        axis.title.x = element_text(15), axis.title.y = element_text(size = 15),
+        axis.text.y = element_text(size = 15),
+        legend.text = element_text(size = 11),legend.title= element_text(size = 15),plot.title= element_text(size = 15),
+        legend.direction="vertical")
+x
+
+
+#Heatmap Archaea
+physeq5 <-subset_taxa(physeq, Domain== "Archaea")
+physeq5_2 <-tax_glom(physeq5, taxrank=rank_names(physeq5)[6], NArm=TRUE, bad_empty=c(NA, "", " ", "\t"))
+e=plot_heatmap(physeq5_1, method = "NMDS", distance = "bray",
+               sample.label = NULL, taxa.label = "Genus", low = "#cd00cd",
+               high = "#340034", na.value = "white",
+               max.label = 250, title = NULL, sample.order = NULL, taxa.order = NULL,
+               first.sample = NULL, first.taxa = NULL) + ylab("Archaeal Genus") + labs(title="b.")
+e$scales$scales[[1]]$name <- "Archaeal Phylum"
+
+e
+
+# ANOVA Methanosarcina
+Amethosar <- aov(Methanosarcina~Mix, data = Family)
+summary(Amethosar)
+plot(TukeyHSD(Amethosar))
+
+# ANOVA Methanothrix
+Amethothrix <- aov(Methanothrix~Mix, data = Family)
+summary(Amethothrix)
+plot(TukeyHSD(Amethothrix))
+
+# ANOVA Methanobacterium
+Amethobact <- aov(Methanobacterium~Mix, data = Family)
+summary(Amethobact)
+plot(TukeyHSD(Amethobact))
+
+#Heatmap Bacteria
+physeq8 <-subset_taxa(physeq, Domain== "Bacteria")
+physeq8_2 <-tax_glom(physeq8, taxrank=rank_names(physeq8)[2], NArm=TRUE, bad_empty=c(NA, "", " ", "\t"))
+c=plot_heatmap(physeq8_2, method = "NMDS", distance = "bray",
+               sample.label = NULL, taxa.label = "Phylum", low = "#00cd00",
+               high = "#003400", na.value = "white",
+               max.label = 250, title = NULL, sample.order = NULL, taxa.order = NULL,
+               first.sample = NULL, first.taxa = NULL) + labs(title="a.")
+c$scales$scales[[1]]$name <- "Bacterial Phylum"
+
+
+ec <- grid.arrange(c, e, ncol=2)
+
+##ANOVA of Abundances
+##ANOVA of Proteobacteria
+Aprot <- aov(Proteobacteria~Mix, data = metadata)
+summary(Aprot)
+TukeyHSD(Aprot)
+
+##Anova of Bacteoroidetes
+Abact <- aov(Bacteroidetes~Mix, data = metadata)
+summary(Abact)
+TukeyHSD(Abact)
+
+#Heatmap Bacteroidetes
+physeq2 <-subset_taxa(physeq, Phylum== "Bacteroidetes")
+physeq2_1 <-tax_glom(physeq2, taxrank=rank_names(physeq2)[5], NArm=TRUE, bad_empty=c(NA, "", " ", "\t"))
+g=plot_heatmap(physeq2_1, method = "NMDS", distance = "bray",
+               sample.label = NULL, taxa.label = "Family", low = "#ffdc73",
+               high = "#a67c00", na.value = "white",
+               max.label = 250, title = NULL, sample.order = NULL, taxa.order = NULL,
+               first.sample = NULL, first.taxa = NULL)+ ylab("Bacterium Families") + labs(title="b.")
+g$scales$scales[[1]]$name <- "Bacteroidetes Families"
+g
+
+#Heatmap Proteobacteria
+physeq3 <-subset_taxa(physeq, Phylum== "Proteobacteria")
+physeq3_1 <-tax_glom(physeq3, taxrank=rank_names(physeq3)[5], NArm=TRUE, bad_empty=c(NA, "", " ", "\t"))
+f=plot_heatmap(physeq3_1, method = "NMDS", distance = "bray",
+               sample.label = NULL, taxa.label = "Family", low = "#66CCFF",
+               high = "#000033", na.value = "white",
+               max.label = 250, title = NULL, sample.order = NULL, taxa.order = NULL,
+               first.sample = NULL, first.taxa = NULL)+ ylab("Bacterium Families") + labs(title="a.")
+f$scales$scales[[1]]$name <- "Proteobacteria Families"
+f
+
+fg <- grid.arrange(f, g, ncol=2)
+
+##anova of Proteobacteria Families
+Family <- read.delim("~/DNA/Anaerobic Digestion Coffee Waste/Family.txt")
+Family$Mix <- factor(Family$Mix) ##Factor Statement
+
+#Moraxellaceae
+Amorax <- aov(Moraxellaceae~Mix, data = Family)
+summary(Amorax)
+plot(TukeyHSD(Amorax)) 
+
+#Comamonadaceae
+Acomamon <- aov(Comamonadaceae~Mix, data = Family)
+summary(Acomamon)
+plot(TukeyHSD(Acomamon))
+
+#Bacteroidaceae
+Abacter <- aov(Bacteroidaceae~Mix, data = Family)
+summary(Abacter)
+TukeyHSD(Abacter)
+
+#Porphyromonadaceae
+APorphyr <- aov(Porphyromonadaceae~Mix, data = Family)
+summary(APorphyr)
+plot(TukeyHSD(APorphyr))
+
+#unclassified
+Aunclass <- aov(unclassified~Mix, data = Family)
+summary(Aunclass)
+TukeyHSD(Aunclass)
+
+#Heatmap Firmicutes
+physeq4 <-subset_taxa(physeq, Phylum== "Firmicutes")
+physeq4_1 <-tax_glom(physeq4, taxrank=rank_names(physeq4)[5], NArm=TRUE, bad_empty=c(NA, "", " ", "\t"))
+h=plot_heatmap(physeq4_1, method = "NMDS", distance = "bray",
+               sample.label = NULL, taxa.label = "Family", low = "#ffc04d",
+               high = "#b37400", na.value = "white",
+               max.label = 250, title = NULL, sample.order = NULL, taxa.order = NULL,
+               first.sample = NULL, first.taxa = NULL)
+h
+
+##anova of Firmicutes Families
+
+#Carnobacteriaceae
+ACarno <- aov(Carnobacteriaceae~Mix, data = Family)
+summary(ACarno)
+plot(TukeyHSD(ACarno)) 
+#Peptococcaceae.2
+APepto <- aov(Peptococcaceae.2~Mix, data = Family)
+summary(APepto)
+TukeyHSD(APepto) 
+#Ruminococcaceae
+ARumi <- aov(Ruminococcaceae~Mix, data = Family)
+summary(ARumi)
+plot(TukeyHSD(ARumi)) 
+#Firm_unclassified
+AFirm_un <- aov(Firm_unclassified~Mix, data = Family)
+summary(AFirm_un)
+plot(TukeyHSD(AFirm_un)) 
+#Pelotomaculum
+APelot <- aov(Pelotomaculum~Mix, data = Family)
+summary(APelot)
+plot(TukeyHSD(APelot)) 
+
+#Heatmap Ruminococcaceae
+physeq9 <-subset_taxa(physeq, Family== "Ruminococcaceae")
+t=plot_heatmap(physeq9, method = "NMDS", distance = "bray",
+               sample.label = NULL, taxa.label = "Genus", low = "#ffc04d",
+               high = "#b37400", na.value = "white",
+               max.label = 250, title = NULL, sample.order = NULL, taxa.order = NULL,
+               first.sample = NULL, first.taxa = NULL)
+t_bar=plot_bar(physeq9, fill = "Genus") + geom_bar(aes(color=Genus, fill=genus), stat = "identity",position = "stack") + 
+  ylab("Gennus Abundace") + xlab("Samples") + labs(title = "b.") + 
+  theme(legend.position="bottom", axis.text.x = element_text(size = 12), 
+        axis.title.y = element_text(size = 12), axis.text.y = element_text(size = 12),
+        legend.text = element_text(size = 12))
+t_bar
+
+#Heatmap Chloroflexi
+physeq10 <-subset_taxa(physeq, Phylum== "Chloroflexi")
+##physeq10_1 <-tax_glom(physeq10, taxrank=rank_names(physeq10)[5], NArm=TRUE, bad_empty=c(NA, "", " ", "\t"))
+Ch=plot_bar(physeq9, fill = "Genus") + geom_bar(aes(color=Genus, fill=genus), stat = "identity",position = "stack") + 
+  ylab("Gennus Abundace") + xlab("Samples") + labs(title = "b.") + 
+  theme(legend.position="bottom", axis.text.x = element_text(size = 12), 
+        axis.title.y = element_text(size = 12), axis.text.y = element_text(size = 12),
+        legend.text = element_text(size = 12))
+Ch
+
+#Anaerolineaceae
+AAnaeroli <- aov(Chloroflexi~Mix, data = Family)
+summary(AAnaeroli)
+plot(TukeyHSD(AAnaeroli))
+
+##Bacterial Genus Analysis
+##anova of Bacteria Genus
+Genus <- read_delim("C:/Users/rojasju2/Dropbox/Trabajo/Ingenio/DNA/Anaerobic Digestion Coffee Waste/Genus.txt", 
+                    "\t", escape_double = FALSE, trim_ws = TRUE)
+Genus$Mix <- factor(Genus$Mix) ##Factor Statement
+
+#Bacteroides
+Bacteroides <- aov(Bacteroides~Mix, data = Genus)
+summary(Bacteroides)
+plot(TukeyHSD(Bacteroides))
+
+#Parabacteroides
+Parabacteroides <- aov(Parabacteroides~Mix, data = Genus)
+summary(Parabacteroides)
+plot(TukeyHSD(Parabacteroides))
+
+#Unclassifedgenus
+Unclassifedgenus <- aov(unclassified~Mix, data = Genus)
+summary(Unclassifedgenus)
+plot(TukeyHSD(Unclassifedgenus))
+
+#Comamonas
+Comamonas <- aov(Comamonas~Mix, data = Genus)
+summary(Comamonas)
+plot(TukeyHSD(Comamonas))
+
+#Acinetobacter
+Acinetobacter <- aov(Acinetobacter~Mix, data = Genus)
+summary(Acinetobacter)
+plot(TukeyHSD(Acinetobacter))
+
+#Trichococcus
+Trichococcus <- aov(Trichococcus~Mix, data = Genus)
+summary(Trichococcus)
+plot(TukeyHSD(Trichococcus))
+
+# DENDOGRAM ---------------------------------------------------------------
+
+
+distancia <-vegdist(t.OTU.table, method = "euclidean") ## Production of Distance Matrix
+cluster <- hclust(distancia, method = "complete", members = NULL) ## Production of Hierarchical Cluster Production
+op <- par("method")
+tree_m <- plot(cluster, xlab = 
+                 "Samples", sub = NULL, main ="Mixes Dendogram")
+par(tree_m)
+range(distancia)
+rect.hclust(cluster, k = 3, border = "green")
+grp <- cutree(cluster, k = 3)
+boxplot(Methanosarcina~ grp, data=metadata, notch = TRUE)
+
+# NETWORK -----------------------------------------------------------------
+
+
+n <- make_network(physeq2, max.dist =0.35)
+plot_network(n, physeq2, color = "Mix", shape = "Mix")
